@@ -386,7 +386,6 @@ function renderCurrent() {
       <div class="nav">
         ${isFirst ? '<div></div>' : '<button class="btn-back" onclick="goBack()">← Back</button>'}
         <div style="display:flex;align-items:center;gap:16px;">
-          ${q.optional ? `<button class="skip-link" onclick="skip()">Skip</button>` : ''}
           <button class="btn-next" id="btn-next"
             onclick="${isLast ? 'submitSurvey()' : 'goNext()'}"
             ${needsAnswer(q) ? 'disabled' : ''}>
@@ -415,16 +414,15 @@ function getMatrixRows(q) {
 
 // ── Answer logic ───────────────────────────────────────────────
 function needsAnswer(q) {
-  if (q.optional) return false;
   const v = answers[q.question_key];
   if (q.type === 'radio')      return !v;
   if (q.type === 'checkbox')   return !(v && v.length > 0);
   if (q.type === 'scale')      return v === undefined || v === null;
   if (q.type === 'short_text') return !v || !v.trim();
+  if (q.type === 'textarea')   return false; // free-form text, never block
   if (q.type === 'matrix') {
     const rows = getMatrixRows(q);
     if (!rows.length) return false;
-    // All rows must be answered
     return !v || rows.some(r => v[r] === undefined || v[r] === null);
   }
   return false;
