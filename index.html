@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUB Tournaments</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f5f5f5;
+        }
+        #root {
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createClient } = supabase;
+
+        // ✅ CONFIGURED WITH YOUR CREDENTIALS
+        const SUPABASE_URL = 'https://fxqlftzkucbdmehhqxgn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4cWxmdHprdWNiZG1laGhxeGduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI0NjkyMjgsImV4cCI6MjA0ODA0NTIyOH0.PBoj-tCSit3KDUza7mWo4gdn6ZhYdHMuIHs-F7n2iJ4';
+        
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const PUBApp = () => {
+            const [tournaments, setTournaments] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [isDark, setIsDark] = useState(false);
+
+            const colors = {
+                primary: isDark ? '#FFFFFF' : '#5BA4B0',
+                secondary: isDark ? '#5BA4B0' : '#2E5A87',
+                background: isDark ? '#000000' : '#FFFFFF',
+                surface: isDark ? '#1A1A1A' : '#F8F9FA',
+                text: isDark ? '#FFFFFF' : '#000000',
+                textSecondary: isDark ? '#B0B0B0' : '#666666',
+                border: isDark ? '#333333' : '#E0E0E0',
+                accent: '#5BA4B0',
+                gradient1: '#5BA4B0',
+                gradient2: '#2E5A87'
+            };
+
+            useEffect(() => {
+                fetchTournaments();
+            }, []);
+
+            const fetchTournaments = async () => {
+                try {
+                    setLoading(true);
+                    setError(null);
+                    
+                    const { data: tournamentsData, error: tournamentsError } = await supabaseClient
+                        .from('tournaments')
+                        .select(`
+                            id,
+                            tournament_name,
+                            start_date,
+                            end_date,
+                            time_range,
+                            payment_link,
+                            venue_id,
+                            venues (
+                                venue_name,
+                                venue_address,
+                                venue_location
+                            )
+                        `)
+                        .order('start_date', { ascending: true });
+
+                    if (tournamentsError) throw new Error(tournamentsError.message);
+
+                    if (!tournamentsData) {
+                        setTournaments([]);
+                        return;
+                    }
+
+                    const tournamentsWithData = await Promise.all(
+                        tournamentsData.map(async (tournament) => {
+                            const { data: divisionsData } = await supabaseClient
+                                .from('divisions')
+                                .select('id')
+                                .eq('tournament_id', tournament.id);
+
+                            let totalRegistrations = 0;
+                            if (divisionsData && divisionsData.length > 0) {
+                                const divisionIds = divisionsData.map(d => d.id);
+                                const { count } = await supabaseClient
+                                    .from('registrations')
+                                    .select('*', { count: 'exact', head: true })
+                                    .in('division_id', divisionIds);
+                                totalRegistrations = count || 0;
+                            }
+                            
+                            return {
+                                id: tournament.id,
+                                tournament_name: tournament.tournament_name,
+                                start_date: tournament.start_date,
+                                end_date: tournament.end_date,
+                                time_range: tournament.time_range,
+                                payment_link: tournament.payment_link,
+                                venue_name: tournament.venues?.venue_name,
+                                venue_address: tournament.venues?.venue_address,
+                                venue_location: tournament.venues?.venue_location,
+                                divisionCount: divisionsData?.length || 0,
+                                registrationCount: totalRegistrations
+                            };
+                        })
+                    );
+
+                    setTournaments(tournamentsWithData);
+                } catch (error) {
+                    console.error('Error fetching tournaments:', error);
+                    setError(error.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const formatDate = (dateString) => {
+                if (!dateString) return 'TBA';
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                });
+            };
+
+            const Header = () => (
+                <div style={{
+                    background: `linear-gradient(135deg, ${colors.gradient1} 0%, ${colors.gradient2} 100%)`,
+                    padding: '24px 20px',
+                    color: '#FFFFFF',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        maxWidth: '1200px',
+                        margin: '0 auto'
+                    }}>
+                        <div>
+                            <div style={{
+                                fontSize: '36px',
+                                fontWeight: '900',
+                                marginBottom: '4px'
+                            }}>PUB</div>
+                            <div style={{
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                letterSpacing: '2px',
+                                opacity: 0.9
+                            }}>PICK YOUR BALL</div>
+                        </div>
+                        <button
+                            onClick={() => setIsDark(!isDark)}
+                            style={{
+                                background: 'rgba(255,255,255,0.2)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '8px 12px',
+                                color: '#FFFFFF',
+                                cursor: 'pointer',
+                                fontSize: '18px'
+                            }}
+                        >
+                            {isDark ? '☀️' : '🌙'}
+                        </button>
+                    </div>
+                    <div style={{ maxWidth: '1200px', margin: '16px auto 0' }}>
+                        <h1 style={{
+                            fontSize: '28px',
+                            fontWeight: '700',
+                            margin: '0 0 8px 0'
+                        }}>
+                            Upcoming Tournaments
+                        </h1>
+                        <p style={{
+                            fontSize: '16px',
+                            opacity: 0.9,
+                            margin: 0
+                        }}>
+                            Select a tournament to register
+                        </p>
+                    </div>
+                </div>
+            );
+
+            const TournamentCard = ({ tournament }) => (
+                <div style={{
+                    backgroundColor: colors.surface,
+                    borderRadius: '16px',
+                    padding: '20px',
+                    marginBottom: '16px',
+                    border: `1px solid ${colors.border}`,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                }}>
+                    <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'flex-start',
+                        marginBottom: '16px',
+                        flexWrap: 'wrap',
+                        gap: '16px'
+                    }}>
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                            <h3 style={{
+                                fontSize: '20px',
+                                fontWeight: '700',
+                                color: colors.text,
+                                margin: '0 0 8px 0'
+                            }}>
+                                {tournament.tournament_name}
+                            </h3>
+                            <div style={{
+                                display: 'inline-block',
+                                padding: '4px 12px',
+                                borderRadius: '12px',
+                                backgroundColor: `${colors.accent}20`,
+                                color: colors.accent,
+                                fontSize: '12px',
+                                fontWeight: '600'
+                            }}>
+                                {tournament.divisionCount} Divisions • {tournament.registrationCount} Teams
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                        gap: '12px',
+                        marginBottom: '16px'
+                    }}>
+                        <div>
+                            <div style={{
+                                fontSize: '12px',
+                                color: colors.textSecondary,
+                                marginBottom: '4px'
+                            }}>📅 Start Date</div>
+                            <div style={{
+                                fontSize: '14px',
+                                fontWeight: '600',
+                                color: colors.text
+                            }}>
+                                {formatDate(tournament.start_date)}
+                            </div>
+                        </div>
+                        {tournament.time_range && (
+                            <div>
+                                <div style={{
+                                    fontSize: '12px',
+                                    color: colors.textSecondary,
+                                    marginBottom: '4px'
+                                }}>🕐 Time</div>
+                                <div style={{
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    color: colors.text
+                                }}>
+                                    {tournament.time_range}
+                                </div>
+                            </div>
+                        )}
+                        {tournament.venue_name && (
+                            <div>
+                                <div style={{
+                                    fontSize: '12px',
+                                    color: colors.textSecondary,
+                                    marginBottom: '4px'
+                                }}>📍 Venue</div>
+                                <div style={{
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    color: colors.text
+                                }}>
+                                    {tournament.venue_name}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {tournament.venue_address && (
+                        <div style={{
+                            fontSize: '12px',
+                            color: colors.textSecondary,
+                            marginBottom: '16px'
+                        }}>
+                            📌 {tournament.venue_address}
+                        </div>
+                    )}
+
+                    <button
+                        style={{
+                            padding: '12px 24px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: colors.primary,
+                            color: isDark ? colors.background : '#FFFFFF',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            boxShadow: `0 4px 12px ${colors.primary}40`,
+                            width: '100%'
+                        }}
+                        onClick={() => {
+                            // Open tournament page in new window
+                            window.open(`tournament.html?id=${tournament.id}`, '_blank');
+                        }}
+                    >
+                        View & Register →
+                    </button>
+                </div>
+            );
+
+            if (error) {
+                return (
+                    <div style={{
+                        minHeight: '100vh',
+                        backgroundColor: colors.background,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '20px'
+                    }}>
+                        <div style={{
+                            maxWidth: '600px',
+                            width: '100%',
+                            backgroundColor: colors.surface,
+                            borderRadius: '16px',
+                            padding: '32px',
+                            border: `2px solid #EF4444`,
+                            textAlign: 'center'
+                        }}>
+                            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+                            <h2 style={{
+                                fontSize: '24px',
+                                fontWeight: '700',
+                                color: '#EF4444',
+                                marginBottom: '16px'
+                            }}>
+                                Connection Error
+                            </h2>
+                            <p style={{
+                                fontSize: '16px',
+                                color: colors.text,
+                                marginBottom: '24px'
+                            }}>
+                                {error}
+                            </p>
+                            <button
+                                onClick={() => {
+                                    setError(null);
+                                    fetchTournaments();
+                                }}
+                                style={{
+                                    padding: '12px 24px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    backgroundColor: colors.accent,
+                                    color: '#FFFFFF',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Try Again
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div style={{
+                    minHeight: '100vh',
+                    backgroundColor: colors.background
+                }}>
+                    <Header />
+                    
+                    <div style={{
+                        padding: '20px',
+                        maxWidth: '1200px',
+                        margin: '0 auto'
+                    }}>
+                        {loading ? (
+                            <div style={{
+                                textAlign: 'center',
+                                padding: '60px 20px',
+                                color: colors.textSecondary
+                            }}>
+                                <div style={{
+                                    fontSize: '48px',
+                                    marginBottom: '16px'
+                                }}>🏓</div>
+                                <div style={{ fontSize: '18px' }}>Loading tournaments...</div>
+                            </div>
+                        ) : tournaments.length === 0 ? (
+                            <div style={{
+                                textAlign: 'center',
+                                padding: '60px 20px'
+                            }}>
+                                <div style={{
+                                    fontSize: '48px',
+                                    marginBottom: '16px'
+                                }}>📅</div>
+                                <div style={{ 
+                                    fontSize: '18px', 
+                                    marginBottom: '8px',
+                                    color: colors.text,
+                                    fontWeight: '600'
+                                }}>
+                                    No upcoming tournaments
+                                </div>
+                                <div style={{ 
+                                    fontSize: '14px',
+                                    color: colors.textSecondary
+                                }}>
+                                    Check back soon!
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{
+                                    marginBottom: '24px',
+                                    padding: '16px',
+                                    borderRadius: '12px',
+                                    background: `linear-gradient(135deg, ${colors.gradient1}15, ${colors.gradient2}08)`,
+                                    border: `1px solid ${colors.accent}30`
+                                }}>
+                                    <div style={{
+                                        fontSize: '14px',
+                                        color: colors.text,
+                                        fontWeight: '600',
+                                        marginBottom: '4px'
+                                    }}>
+                                        📢 Total Tournaments: {tournaments.length}
+                                    </div>
+                                    <div style={{
+                                        fontSize: '12px',
+                                        color: colors.textSecondary
+                                    }}>
+                                        Click on any tournament to view divisions and register
+                                    </div>
+                                </div>
+
+                                {tournaments.map(tournament => (
+                                    <TournamentCard key={tournament.id} tournament={tournament} />
+                                ))}
+                            </>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<PUBApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
