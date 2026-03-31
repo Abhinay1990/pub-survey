@@ -321,8 +321,10 @@ function renderCurrent() {
         </div>`).join('') + `</div>`;
 
   } else if (q.type === 'scale') {
+    const minVal = q.scale_min !== null && q.scale_min !== undefined ? q.scale_min : 1;
+    const maxVal = q.scale_max !== null && q.scale_max !== undefined ? q.scale_max : 10;
     const btns = [];
-    for (let n = q.scale_min; n <= q.scale_max; n++)
+    for (let n = minVal; n <= maxVal; n++)
       btns.push(`<div class="scale-btn${answers[q.question_key]===n?' selected':''}" onclick="pickScale(${n},this)">${n}</div>`);
     inputHTML = `<div class="scale-wrap">
       <div class="scale-buttons">${btns.join('')}</div>
@@ -422,7 +424,8 @@ function needsAnswer(q) {
   if (q.type === 'matrix') {
     const rows = getMatrixRows(q);
     if (!rows.length) return false;
-    return !v || rows.some(r => !v[r]);
+    // All rows must be answered
+    return !v || rows.some(r => v[r] === undefined || v[r] === null);
   }
   return false;
 }
@@ -549,6 +552,8 @@ function showThankYou() {
   countEl.textContent   = '';
   fillEl.style.width    = '100%';
 
+  const surveyUrl = window.location.href.split('?')[0];
+
   mainEl.innerHTML = `
     <div class="thankyou">
       <div class="ty-card">
@@ -558,11 +563,62 @@ function showThankYou() {
           </svg>
         </div>
         <div class="ty-title">Thank you!</div>
-        <div class="ty-sub">Your response has been saved. It helps us understand how pickleball players find games and what problems we can solve for you.</div>
-        <p style="font-size:13px;color:var(--ink-light);font-weight:300;line-height:1.6;">Know other pickleball players? Share this survey with them to help us build something better for the whole community.</p>
+        <div class="ty-sub">Your response has been saved. It helps us understand how pickleball players find games and what problems we can solve for the community.</div>
+
+        <div style="background:#EAF5F7;border-radius:12px;padding:20px 24px;margin-bottom:24px;text-align:left;">
+          <p style="font-size:13px;font-weight:500;color:#1A1A2E;margin-bottom:6px;">Know other pickleball players?</p>
+          <p style="font-size:13px;color:#4A4A68;font-weight:300;line-height:1.6;margin-bottom:16px;">Share this survey with your playing group — the more players who respond, the better we can build for everyone.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button onclick="shareWhatsApp()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border:none;border-radius:10px;background:#25D366;color:white;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.135.563 4.14 1.545 5.876L0 24l6.272-1.545A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.9 0-3.68-.5-5.22-1.376l-.374-.22-3.876.955.974-3.764-.243-.386A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+              Share on WhatsApp
+            </button>
+            <button onclick="copyLink()" id="copy-btn" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border:1.5px solid #C2E4EA;border-radius:10px;background:white;color:#5BA4B0;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5BA4B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              <span id="copy-label">Copy link</span>
+            </button>
+          </div>
+        </div>
+
+        <p style="font-size:12px;color:#8888A8;font-weight:300;line-height:1.6;">
+          Built by PUB — Pick Your Ball. Helping pickleball players connect, compete, and grow together.
+        </p>
       </div>
     </div>`;
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Attach share functions
+  window.shareWhatsApp = function() {
+    const msg = encodeURIComponent(
+      "Hey! PUB is building an app to make finding pickleball games easier — no more WhatsApp chaos 🏓\n\nTake this 2-min survey and help shape what gets built:\n" + surveyUrl
+    );
+    window.open('https://wa.me/?text=' + msg, '_blank');
+  };
+
+  window.copyLink = function() {
+    navigator.clipboard.writeText(surveyUrl).then(() => {
+      const label = document.getElementById('copy-label');
+      const btn   = document.getElementById('copy-btn');
+      if (label) label.textContent = 'Copied!';
+      if (btn)   btn.style.background = '#EAF5F7';
+      setTimeout(() => {
+        if (label) label.textContent = 'Copy link';
+        if (btn)   btn.style.background = 'white';
+      }, 2500);
+    }).catch(() => {
+      // Fallback for older browsers
+      const ta = document.createElement('textarea');
+      ta.value = surveyUrl;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      const label = document.getElementById('copy-label');
+      if (label) label.textContent = 'Copied!';
+      setTimeout(() => { if (label) label.textContent = 'Copy link'; }, 2500);
+    });
+  };
 }
 
 loadQuestions();
