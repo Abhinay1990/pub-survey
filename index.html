@@ -1,476 +1,518 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUB Tournaments</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: #f5f5f5;
-        }
-        #root {
-            min-height: 100vh;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PUB — Player Survey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --teal: #5BA4B0; --navy: #2E5A87;
+    --teal-light: #EAF5F7; --teal-mid: #C2E4EA;
+    --ink: #1A1A2E; --ink-mid: #4A4A68; --ink-light: #8888A8;
+    --surface: #F7F8FC; --white: #FFFFFF; --border: #E4E6F0;
+    --radius: 16px; --radius-sm: 10px;
+  }
+  html,body { min-height:100%; font-family:'DM Sans',sans-serif; background:var(--surface); color:var(--ink); -webkit-font-smoothing:antialiased; }
+  .shell { min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:0 20px 80px; }
+  .topbar { width:100%; max-width:560px; padding:28px 0 0; display:flex; flex-direction:column; gap:20px; }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand-mark { width:36px; height:36px; background:var(--teal); border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; font-family:'DM Serif Display',serif; font-size:16px; }
+  .brand-name { font-size:13px; font-weight:500; color:var(--ink-mid); letter-spacing:.05em; text-transform:uppercase; }
+  .progress-wrap { display:flex; flex-direction:column; gap:8px; }
+  .progress-meta { display:flex; justify-content:space-between; align-items:center; }
+  .progress-section { font-size:12px; font-weight:500; color:var(--teal); letter-spacing:.06em; text-transform:uppercase; }
+  .progress-count { font-size:12px; color:var(--ink-light); font-weight:300; }
+  .progress-track { height:3px; background:var(--teal-mid); border-radius:99px; overflow:hidden; }
+  .progress-fill { height:100%; background:var(--teal); border-radius:99px; transition:width .5s cubic-bezier(.4,0,.2,1); }
+  .card { width:100%; max-width:560px; background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:40px 40px 36px; margin-top:24px; animation:slideUp .35s cubic-bezier(.4,0,.2,1) both; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+  .q-number { font-size:11px; font-weight:500; color:var(--teal); letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px; }
+  .q-label { font-family:'DM Serif Display',serif; font-size:22px; line-height:1.35; color:var(--ink); margin-bottom:6px; }
+  .q-hint { font-size:13px; color:var(--ink-light); font-weight:300; margin-bottom:24px; line-height:1.5; }
+  .options { display:flex; flex-direction:column; gap:8px; }
+  .opt { display:flex; align-items:center; gap:14px; padding:14px 16px; border:1.5px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:border-color .15s,background .15s; user-select:none; font-size:14px; color:var(--ink-mid); font-weight:400; line-height:1.4; background:var(--white); }
+  .opt:hover { border-color:var(--teal-mid); background:var(--teal-light); color:var(--ink); }
+  .opt.selected { border-color:var(--teal); background:var(--teal-light); color:var(--ink); }
+  .opt-indicator { width:20px; height:20px; border-radius:50%; border:1.5px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+  .opt.selected .opt-indicator { border-color:var(--teal); background:var(--teal); }
+  .opt-dot { width:7px; height:7px; border-radius:50%; background:white; opacity:0; transition:opacity .15s; }
+  .opt.selected .opt-dot { opacity:1; }
+  .opt-indicator.sq { border-radius:6px; }
+  .opt.selected .opt-indicator.sq { border-color:var(--teal); background:var(--teal); }
+  .check-icon { width:11px; height:8px; opacity:0; transition:opacity .15s; }
+  .opt.selected .check-icon { opacity:1; }
+  .scale-wrap { display:flex; flex-direction:column; gap:12px; }
+  .scale-buttons { display:flex; gap:6px; }
+  .scale-btn { flex:1; padding:12px 4px; border:1.5px solid var(--border); border-radius:var(--radius-sm); background:var(--white); cursor:pointer; font-family:'DM Serif Display',serif; font-size:17px; color:var(--ink-mid); text-align:center; transition:all .15s; }
+  .scale-btn:hover { border-color:var(--teal-mid); background:var(--teal-light); color:var(--ink); }
+  .scale-btn.selected { border-color:var(--teal); background:var(--teal); color:white; }
+  .scale-labels { display:flex; justify-content:space-between; font-size:11px; color:var(--ink-light); font-weight:300; }
+  .q-textarea { width:100%; min-height:120px; padding:14px 16px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family:'DM Sans',sans-serif; font-size:14px; color:var(--ink); background:var(--white); resize:vertical; outline:none; transition:border-color .15s; font-weight:300; line-height:1.6; }
+  .q-textarea::placeholder { color:var(--ink-light); }
+  .q-textarea:focus { border-color:var(--teal); }
+  .nav { display:flex; align-items:center; justify-content:space-between; margin-top:32px; }
+  .btn-back { padding:12px 20px; border:1.5px solid var(--border); border-radius:var(--radius-sm); background:transparent; font-family:'DM Sans',sans-serif; font-size:14px; color:var(--ink-light); cursor:pointer; transition:all .15s; }
+  .btn-back:hover { color:var(--ink); border-color:var(--ink-mid); }
+  .btn-next { padding:13px 32px; border:none; border-radius:var(--radius-sm); background:var(--teal); font-family:'DM Sans',sans-serif; font-size:14px; font-weight:500; color:white; cursor:pointer; transition:opacity .15s,transform .1s; display:flex; align-items:center; gap:8px; }
+  .btn-next:hover { opacity:.88; }
+  .btn-next:active { transform:scale(.98); }
+  .btn-next:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+  .skip-link { font-size:12px; color:var(--ink-light); cursor:pointer; text-decoration:underline; text-underline-offset:3px; background:none; border:none; font-family:'DM Sans',sans-serif; }
+  .spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,.4); border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; display:none; }
+  .btn-next.loading .spinner { display:block; }
+  .btn-next.loading .btn-label { opacity:.6; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .loading-screen { width:100%; max-width:560px; margin-top:40px; text-align:center; }
+  .loading-screen p { font-size:14px; color:var(--ink-light); font-weight:300; margin-top:16px; }
+  .load-spinner { width:32px; height:32px; border:2px solid var(--teal-mid); border-top-color:var(--teal); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto; }
+  .error-screen { width:100%; max-width:560px; margin-top:40px; background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:40px; text-align:center; }
+  .error-screen h2 { font-family:'DM Serif Display',serif; font-size:22px; color:var(--ink); margin-bottom:10px; }
+  .error-screen p { font-size:14px; color:var(--ink-light); font-weight:300; margin-bottom:24px; }
+  .btn-retry { padding:12px 28px; border:1.5px solid var(--teal); border-radius:var(--radius-sm); background:transparent; font-family:'DM Sans',sans-serif; font-size:14px; color:var(--teal); cursor:pointer; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:#2E1A1A; color:#FCA5A5; font-size:13px; padding:12px 20px; border-radius:var(--radius-sm); transition:transform .3s ease; z-index:999; white-space:nowrap; font-family:'DM Sans',sans-serif; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+  .thankyou { width:100%; max-width:560px; margin-top:24px; animation:slideUp .4s cubic-bezier(.4,0,.2,1) both; }
+  .ty-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:48px 40px; text-align:center; }
+  .ty-icon { width:56px; height:56px; border-radius:50%; background:var(--teal-light); display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
+  .ty-title { font-family:'DM Serif Display',serif; font-size:28px; color:var(--ink); margin-bottom:10px; }
+  .ty-sub { font-size:15px; color:var(--ink-light); font-weight:300; line-height:1.6; max-width:340px; margin:0 auto 32px; }
+  .adoption-badge { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:99px; background:var(--teal-light); border:1.5px solid var(--teal-mid); font-size:14px; font-weight:500; color:var(--teal); margin-bottom:28px; }
+  .score-bar-row { display:flex; flex-direction:column; gap:12px; margin-bottom:28px; text-align:left; }
+  .sbar-item { display:flex; flex-direction:column; gap:5px; }
+  .sbar-meta { display:flex; justify-content:space-between; }
+  .sbar-label { font-size:12px; color:var(--ink-mid); }
+  .sbar-val { font-size:12px; font-weight:500; color:var(--teal); }
+  .sbar-track { height:4px; background:var(--teal-mid); border-radius:99px; overflow:hidden; }
+  .sbar-fill { height:100%; background:var(--teal); border-radius:99px; transition:width 1s ease .4s; }
+  .score-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; text-align:left; margin-bottom:28px; }
+  .score-tile { padding:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); }
+  .score-tile-label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-light); font-weight:500; margin-bottom:6px; }
+  .score-tile-val { font-family:'DM Serif Display',serif; font-size:22px; color:var(--teal); margin-bottom:2px; }
+  .score-tile-desc { font-size:11px; color:var(--ink-light); font-weight:300; }
+  @media(max-width:480px) {
+    .card,.ty-card { padding:28px 20px 24px; }
+    .q-label { font-size:19px; }
+    .scale-btn { font-size:15px; padding:10px 2px; }
+    .score-grid { grid-template-columns:1fr; }
+  }
+</style>
 </head>
 <body>
-    <div id="root"></div>
+<div class="shell">
+  <div class="topbar" id="topbar">
+    <div class="brand">
+      <div class="brand-mark">pub</div>
+      <div class="brand-name">Player Research Survey</div>
+    </div>
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-meta">
+        <div class="progress-section" id="section-label">Loading…</div>
+        <div class="progress-count" id="q-count"></div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+  <div id="main"></div>
+</div>
+<div class="toast" id="toast"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-        const { createClient } = supabase;
+<script>
+// ── Supabase ───────────────────────────────────────────────────
+const SUPABASE_URL  = 'https://fxqlftzkucbdmehhqxgn.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4cWxmdHprdWNiZG1laGhxeGduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI0NjkyMjgsImV4cCI6MjA0ODA0NTIyOH0.PBoj-tCSit3KDUza7mWo4gdn6ZhYdHMuIHs-F7n2iJ4';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-        // ✅ CONFIGURED WITH YOUR CREDENTIALS
-        const SUPABASE_URL = 'https://fxqlftzkucbdmehhqxgn.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4cWxmdHprdWNiZG1laGhxeGduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI0NjkyMjgsImV4cCI6MjA0ODA0NTIyOH0.PBoj-tCSit3KDUza7mWo4gdn6ZhYdHMuIHs-F7n2iJ4';
-        
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ── State ──────────────────────────────────────────────────────
+let QUESTIONS = [];   // loaded from DB
+let sessionId = null; // created on first answer
+let current   = 0;
+const answers = {};   // question_key → value
 
-        const PUBApp = () => {
-            const [tournaments, setTournaments] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
-            const [isDark, setIsDark] = useState(false);
+const mainEl    = document.getElementById('main');
+const fillEl    = document.getElementById('progress-fill');
+const sectionEl = document.getElementById('section-label');
+const countEl   = document.getElementById('q-count');
+const toastEl   = document.getElementById('toast');
 
-            const colors = {
-                primary: isDark ? '#FFFFFF' : '#5BA4B0',
-                secondary: isDark ? '#5BA4B0' : '#2E5A87',
-                background: isDark ? '#000000' : '#FFFFFF',
-                surface: isDark ? '#1A1A1A' : '#F8F9FA',
-                text: isDark ? '#FFFFFF' : '#000000',
-                textSecondary: isDark ? '#B0B0B0' : '#666666',
-                border: isDark ? '#333333' : '#E0E0E0',
-                accent: '#5BA4B0',
-                gradient1: '#5BA4B0',
-                gradient2: '#2E5A87'
-            };
+// ── Toast ──────────────────────────────────────────────────────
+function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(() => toastEl.classList.remove('show'), 4000);
+}
 
-            useEffect(() => {
-                fetchTournaments();
-            }, []);
+// ── Load questions from Supabase ───────────────────────────────
+async function loadQuestions() {
+  mainEl.innerHTML = `<div class="loading-screen">
+    <div class="load-spinner"></div>
+    <p>Loading survey…</p>
+  </div>`;
 
-            const fetchTournaments = async () => {
-                try {
-                    setLoading(true);
-                    setError(null);
-                    
-                    const { data: tournamentsData, error: tournamentsError } = await supabaseClient
-                        .from('tournaments')
-                        .select(`
-                            id,
-                            tournament_name,
-                            start_date,
-                            end_date,
-                            time_range,
-                            payment_link,
-                            venue_id,
-                            venues (
-                                venue_name,
-                                venue_address,
-                                venue_location
-                            )
-                        `)
-                        .order('start_date', { ascending: true });
+  const { data, error } = await db
+    .from('survey_questions')
+    .select('*')
+    .eq('is_active', true)
+    .order('sort_order');
 
-                    if (tournamentsError) throw new Error(tournamentsError.message);
+  if (error || !data || data.length === 0) {
+    mainEl.innerHTML = `<div class="error-screen">
+      <h2>Couldn't load the survey</h2>
+      <p>Please check your connection and try again.</p>
+      <button class="btn-retry" onclick="loadQuestions()">Try again</button>
+    </div>`;
+    return;
+  }
 
-                    if (!tournamentsData) {
-                        setTournaments([]);
-                        return;
-                    }
+  QUESTIONS = data;
+  renderQuestion(0);
+}
 
-                    const tournamentsWithData = await Promise.all(
-                        tournamentsData.map(async (tournament) => {
-                            const { data: divisionsData } = await supabaseClient
-                                .from('divisions')
-                                .select('id')
-                                .eq('tournament_id', tournament.id);
+// ── Create session on first interaction ───────────────────────
+async function ensureSession() {
+  if (sessionId) return true;
+  const { data, error } = await db
+    .from('survey_sessions')
+    .insert({ started_at: new Date().toISOString() })
+    .select('id')
+    .single();
+  if (error) { showToast('Session error — please refresh.'); return false; }
+  sessionId = data.id;
+  return true;
+}
 
-                            let totalRegistrations = 0;
-                            if (divisionsData && divisionsData.length > 0) {
-                                const divisionIds = divisionsData.map(d => d.id);
-                                const { count } = await supabaseClient
-                                    .from('registrations')
-                                    .select('*', { count: 'exact', head: true })
-                                    .in('division_id', divisionIds);
-                                totalRegistrations = count || 0;
-                            }
-                            
-                            return {
-                                id: tournament.id,
-                                tournament_name: tournament.tournament_name,
-                                start_date: tournament.start_date,
-                                end_date: tournament.end_date,
-                                time_range: tournament.time_range,
-                                payment_link: tournament.payment_link,
-                                venue_name: tournament.venues?.venue_name,
-                                venue_address: tournament.venues?.venue_address,
-                                venue_location: tournament.venues?.venue_location,
-                                divisionCount: divisionsData?.length || 0,
-                                registrationCount: totalRegistrations
-                            };
-                        })
-                    );
+// ── Save a single answer ──────────────────────────────────────
+async function saveAnswer(q, value) {
+  const ok = await ensureSession();
+  if (!ok) return { error: 'no session' };
 
-                    setTournaments(tournamentsWithData);
-                } catch (error) {
-                    console.error('Error fetching tournaments:', error);
-                    setError(error.message);
-                } finally {
-                    setLoading(false);
-                }
-            };
+  const payload = {
+    session_id:   sessionId,
+    question_id:  q.id,
+    question_key: q.question_key,
+    answered_at:  new Date().toISOString()
+  };
 
-            const formatDate = (dateString) => {
-                if (!dateString) return 'TBA';
-                const date = new Date(dateString);
-                return date.toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    year: 'numeric' 
-                });
-            };
+  if (q.type === 'radio' || q.type === 'textarea') {
+    payload.answer_text  = value || null;
+    payload.answer_array = null;
+    payload.answer_int   = null;
+  } else if (q.type === 'checkbox') {
+    payload.answer_array = value && value.length ? value : null;
+    payload.answer_text  = null;
+    payload.answer_int   = null;
+  } else if (q.type === 'scale') {
+    payload.answer_int   = value !== undefined ? value : null;
+    payload.answer_text  = null;
+    payload.answer_array = null;
+  }
 
-            const Header = () => (
-                <div style={{
-                    background: `linear-gradient(135deg, ${colors.gradient1} 0%, ${colors.gradient2} 100%)`,
-                    padding: '24px 20px',
-                    color: '#FFFFFF',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }}>
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        maxWidth: '1200px',
-                        margin: '0 auto'
-                    }}>
-                        <div>
-                            <div style={{
-                                fontSize: '36px',
-                                fontWeight: '900',
-                                marginBottom: '4px'
-                            }}>PUB</div>
-                            <div style={{
-                                fontSize: '12px',
-                                fontWeight: '600',
-                                letterSpacing: '2px',
-                                opacity: 0.9
-                            }}>PICK YOUR BALL</div>
-                        </div>
-                        <button
-                            onClick={() => setIsDark(!isDark)}
-                            style={{
-                                background: 'rgba(255,255,255,0.2)',
-                                border: 'none',
-                                borderRadius: '8px',
-                                padding: '8px 12px',
-                                color: '#FFFFFF',
-                                cursor: 'pointer',
-                                fontSize: '18px'
-                            }}
-                        >
-                            {isDark ? '☀️' : '🌙'}
-                        </button>
-                    </div>
-                    <div style={{ maxWidth: '1200px', margin: '16px auto 0' }}>
-                        <h1 style={{
-                            fontSize: '28px',
-                            fontWeight: '700',
-                            margin: '0 0 8px 0'
-                        }}>
-                            Upcoming Tournaments
-                        </h1>
-                        <p style={{
-                            fontSize: '16px',
-                            opacity: 0.9,
-                            margin: 0
-                        }}>
-                            Select a tournament to register
-                        </p>
-                    </div>
-                </div>
-            );
+  // Try update first (row may already exist if user went back)
+  const { data: existing } = await db
+    .from('survey_answers')
+    .select('id')
+    .eq('session_id', sessionId)
+    .eq('question_id', q.id)
+    .maybeSingle();
 
-            const TournamentCard = ({ tournament }) => (
-                <div style={{
-                    backgroundColor: colors.surface,
-                    borderRadius: '16px',
-                    padding: '20px',
-                    marginBottom: '16px',
-                    border: `1px solid ${colors.border}`,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-                }}>
-                    <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'flex-start',
-                        marginBottom: '16px',
-                        flexWrap: 'wrap',
-                        gap: '16px'
-                    }}>
-                        <div style={{ flex: 1, minWidth: '200px' }}>
-                            <h3 style={{
-                                fontSize: '20px',
-                                fontWeight: '700',
-                                color: colors.text,
-                                margin: '0 0 8px 0'
-                            }}>
-                                {tournament.tournament_name}
-                            </h3>
-                            <div style={{
-                                display: 'inline-block',
-                                padding: '4px 12px',
-                                borderRadius: '12px',
-                                backgroundColor: `${colors.accent}20`,
-                                color: colors.accent,
-                                fontSize: '12px',
-                                fontWeight: '600'
-                            }}>
-                                {tournament.divisionCount} Divisions • {tournament.registrationCount} Teams
-                            </div>
-                        </div>
-                    </div>
+  if (existing) {
+    const { error } = await db
+      .from('survey_answers')
+      .update(payload)
+      .eq('id', existing.id);
+    return { error };
+  } else {
+    const { error } = await db
+      .from('survey_answers')
+      .insert(payload);
+    return { error };
+  }
+}
 
-                    <div style={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                        gap: '12px',
-                        marginBottom: '16px'
-                    }}>
-                        <div>
-                            <div style={{
-                                fontSize: '12px',
-                                color: colors.textSecondary,
-                                marginBottom: '4px'
-                            }}>📅 Start Date</div>
-                            <div style={{
-                                fontSize: '14px',
-                                fontWeight: '600',
-                                color: colors.text
-                            }}>
-                                {formatDate(tournament.start_date)}
-                            </div>
-                        </div>
-                        {tournament.time_range && (
-                            <div>
-                                <div style={{
-                                    fontSize: '12px',
-                                    color: colors.textSecondary,
-                                    marginBottom: '4px'
-                                }}>🕐 Time</div>
-                                <div style={{
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    color: colors.text
-                                }}>
-                                    {tournament.time_range}
-                                </div>
-                            </div>
-                        )}
-                        {tournament.venue_name && (
-                            <div>
-                                <div style={{
-                                    fontSize: '12px',
-                                    color: colors.textSecondary,
-                                    marginBottom: '4px'
-                                }}>📍 Venue</div>
-                                <div style={{
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    color: colors.text
-                                }}>
-                                    {tournament.venue_name}
-                                </div>
-                            </div>
-                        )}
-                    </div>
+// ── Mark session complete ─────────────────────────────────────
+async function markComplete() {
+  if (!sessionId) return { error: 'no session id' };
+  const { error } = await db
+    .from('survey_sessions')
+    .update({
+      submitted_at: new Date().toISOString(),
+      completed: true
+    })
+    .eq('id', sessionId);
+  return { error };
+}
 
-                    {tournament.venue_address && (
-                        <div style={{
-                            fontSize: '12px',
-                            color: colors.textSecondary,
-                            marginBottom: '16px'
-                        }}>
-                            📌 {tournament.venue_address}
-                        </div>
-                    )}
+// ── Progress ───────────────────────────────────────────────────
+function updateProgress() {
+  const pct = Math.round(((current + 1) / QUESTIONS.length) * 100);
+  fillEl.style.width = pct + '%';
+  sectionEl.textContent = QUESTIONS[current].section;
+  countEl.textContent   = (current + 1) + ' of ' + QUESTIONS.length;
+}
 
-                    <button
-                        style={{
-                            padding: '12px 24px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: colors.primary,
-                            color: isDark ? colors.background : '#FFFFFF',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            boxShadow: `0 4px 12px ${colors.primary}40`,
-                            width: '100%'
-                        }}
-                        onClick={() => {
-                            // Open tournament page in new window
-                            window.open(`tournament.html?id=${tournament.id}`, '_blank');
-                        }}
-                    >
-                        View & Register →
-                    </button>
-                </div>
-            );
+// ── Render question ────────────────────────────────────────────
+function renderQuestion(idx) {
+  current = idx;
+  const q = QUESTIONS[idx];
+  updateProgress();
 
-            if (error) {
-                return (
-                    <div style={{
-                        minHeight: '100vh',
-                        backgroundColor: colors.background,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '20px'
-                    }}>
-                        <div style={{
-                            maxWidth: '600px',
-                            width: '100%',
-                            backgroundColor: colors.surface,
-                            borderRadius: '16px',
-                            padding: '32px',
-                            border: `2px solid #EF4444`,
-                            textAlign: 'center'
-                        }}>
-                            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-                            <h2 style={{
-                                fontSize: '24px',
-                                fontWeight: '700',
-                                color: '#EF4444',
-                                marginBottom: '16px'
-                            }}>
-                                Connection Error
-                            </h2>
-                            <p style={{
-                                fontSize: '16px',
-                                color: colors.text,
-                                marginBottom: '24px'
-                            }}>
-                                {error}
-                            </p>
-                            <button
-                                onClick={() => {
-                                    setError(null);
-                                    fetchTournaments();
-                                }}
-                                style={{
-                                    padding: '12px 24px',
-                                    borderRadius: '8px',
-                                    border: 'none',
-                                    backgroundColor: colors.accent,
-                                    color: '#FFFFFF',
-                                    fontSize: '16px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                Try Again
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
+  let inputHTML = '';
+  const opts = q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : [];
 
-            return (
-                <div style={{
-                    minHeight: '100vh',
-                    backgroundColor: colors.background
-                }}>
-                    <Header />
-                    
-                    <div style={{
-                        padding: '20px',
-                        maxWidth: '1200px',
-                        margin: '0 auto'
-                    }}>
-                        {loading ? (
-                            <div style={{
-                                textAlign: 'center',
-                                padding: '60px 20px',
-                                color: colors.textSecondary
-                            }}>
-                                <div style={{
-                                    fontSize: '48px',
-                                    marginBottom: '16px'
-                                }}>🏓</div>
-                                <div style={{ fontSize: '18px' }}>Loading tournaments...</div>
-                            </div>
-                        ) : tournaments.length === 0 ? (
-                            <div style={{
-                                textAlign: 'center',
-                                padding: '60px 20px'
-                            }}>
-                                <div style={{
-                                    fontSize: '48px',
-                                    marginBottom: '16px'
-                                }}>📅</div>
-                                <div style={{ 
-                                    fontSize: '18px', 
-                                    marginBottom: '8px',
-                                    color: colors.text,
-                                    fontWeight: '600'
-                                }}>
-                                    No upcoming tournaments
-                                </div>
-                                <div style={{ 
-                                    fontSize: '14px',
-                                    color: colors.textSecondary
-                                }}>
-                                    Check back soon!
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                <div style={{
-                                    marginBottom: '24px',
-                                    padding: '16px',
-                                    borderRadius: '12px',
-                                    background: `linear-gradient(135deg, ${colors.gradient1}15, ${colors.gradient2}08)`,
-                                    border: `1px solid ${colors.accent}30`
-                                }}>
-                                    <div style={{
-                                        fontSize: '14px',
-                                        color: colors.text,
-                                        fontWeight: '600',
-                                        marginBottom: '4px'
-                                    }}>
-                                        📢 Total Tournaments: {tournaments.length}
-                                    </div>
-                                    <div style={{
-                                        fontSize: '12px',
-                                        color: colors.textSecondary
-                                    }}>
-                                        Click on any tournament to view divisions and register
-                                    </div>
-                                </div>
+  if (q.type === 'radio') {
+    inputHTML = `<div class="options" id="opts">` +
+      opts.map(opt => `
+        <div class="opt${answers[q.question_key]===opt?' selected':''}" data-val="${esc(opt)}" onclick="pickRadio(this)">
+          <div class="opt-indicator"><div class="opt-dot"></div></div>
+          <span>${opt}</span>
+        </div>`).join('') + `</div>`;
+  }
+  else if (q.type === 'checkbox') {
+    const maxSel = q.max_selections || 99;
+    inputHTML = `<div class="options" id="opts">` +
+      opts.map(opt => `
+        <div class="opt${(answers[q.question_key]||[]).includes(opt)?' selected':''}" data-val="${esc(opt)}" onclick="pickCheck(this,${maxSel})">
+          <div class="opt-indicator sq">
+            <svg class="check-icon" viewBox="0 0 11 8" fill="none">
+              <path d="M1 4L4 7L10 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span>${opt}</span>
+        </div>`).join('') + `</div>`;
+  }
+  else if (q.type === 'scale') {
+    const btns = [];
+    for (let n = q.scale_min; n <= q.scale_max; n++)
+      btns.push(`<div class="scale-btn${answers[q.question_key]===n?' selected':''}" onclick="pickScale(${n},this)">${n}</div>`);
+    inputHTML = `<div class="scale-wrap">
+      <div class="scale-buttons">${btns.join('')}</div>
+      <div class="scale-labels"><span>${q.scale_left}</span><span>${q.scale_right}</span></div>
+    </div>`;
+  }
+  else if (q.type === 'textarea') {
+    inputHTML = `<textarea class="q-textarea" id="ta-${q.question_key}" placeholder="Type your answer here…" oninput="answers['${q.question_key}']=this.value;saveAnswer(QUESTIONS[current],this.value)">${answers[q.question_key]||''}</textarea>`;
+  }
 
-                                {tournaments.map(tournament => (
-                                    <TournamentCard key={tournament.id} tournament={tournament} />
-                                ))}
-                            </>
-                        )}
-                    </div>
-                </div>
-            );
-        };
+  const isFirst = idx === 0;
+  const isLast  = idx === QUESTIONS.length - 1;
 
-        ReactDOM.render(<PUBApp />, document.getElementById('root'));
-    </script>
+  mainEl.innerHTML = `
+    <div class="card">
+      <div class="q-number">Question ${idx + 1}</div>
+      <div class="q-label">${q.label}</div>
+      ${q.hint ? `<div class="q-hint">${q.hint}</div>` : '<div style="margin-bottom:24px"></div>'}
+      ${inputHTML}
+      <div class="nav">
+        ${isFirst ? '<div></div>' : '<button class="btn-back" onclick="goBack()">← Back</button>'}
+        <div style="display:flex;align-items:center;gap:16px;">
+          ${q.optional ? `<button class="skip-link" onclick="skip()">Skip</button>` : ''}
+          <button class="btn-next" id="btn-next" onclick="${isLast?'submitSurvey()':'goNext()'}" ${needsAnswer(q)?'disabled':''}>
+            <span class="btn-label">${isLast ? 'Submit survey' : 'Continue →'}</span>
+            <div class="spinner"></div>
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Answer helpers ─────────────────────────────────────────────
+function needsAnswer(q) {
+  if (q.optional) return false;
+  if (q.type === 'radio')    return !answers[q.question_key];
+  if (q.type === 'checkbox') return !(answers[q.question_key]&&answers[q.question_key].length>0);
+  if (q.type === 'scale')    return answers[q.question_key] === undefined;
+  return false;
+}
+function refreshBtn() {
+  const btn = document.getElementById('btn-next');
+  if (btn) btn.disabled = needsAnswer(QUESTIONS[current]);
+}
+
+function pickRadio(el) {
+  const q   = QUESTIONS[current];
+  const val = el.dataset.val;
+  answers[q.question_key] = val;
+  document.querySelectorAll('#opts .opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  saveAnswer(q, val);
+  refreshBtn();
+  setTimeout(() => { if (!needsAnswer(q)) goNext(); }, 300);
+}
+
+function pickCheck(el, max) {
+  const q   = QUESTIONS[current];
+  const key = q.question_key;
+  const val = el.dataset.val;
+  if (!answers[key]) answers[key] = [];
+  if (answers[key].includes(val)) {
+    answers[key] = answers[key].filter(v=>v!==val);
+    el.classList.remove('selected');
+  } else {
+    if (answers[key].length >= max) {
+      const first = document.querySelector('#opts .opt.selected');
+      answers[key] = answers[key].filter(v=>v!==first.dataset.val);
+      first.classList.remove('selected');
+    }
+    answers[key].push(val);
+    el.classList.add('selected');
+  }
+  saveAnswer(q, answers[key]);
+  refreshBtn();
+}
+
+function pickScale(val, el) {
+  const q = QUESTIONS[current];
+  answers[q.question_key] = val;
+  document.querySelectorAll('.scale-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  saveAnswer(q, val);
+  refreshBtn();
+}
+
+// ── Navigation ─────────────────────────────────────────────────
+function goNext() {
+  if (current < QUESTIONS.length-1) {
+    renderQuestion(current+1);
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+}
+function goBack() {
+  if (current > 0) {
+    renderQuestion(current-1);
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+}
+function skip() { goNext(); }
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Final submit ───────────────────────────────────────────────
+async function submitSurvey() {
+  const btn = document.getElementById('btn-next');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  // Ensure session exists before doing anything
+  const ok = await ensureSession();
+  if (!ok) {
+    showToast('Session error — please refresh the page.');
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    return;
+  }
+
+  // Save every answered question (catches any that weren't auto-saved)
+  for (const q of QUESTIONS) {
+    const val = answers[q.question_key];
+    const hasAnswer = val !== undefined && val !== null && val !== '' &&
+                      !(Array.isArray(val) && val.length === 0);
+    if (hasAnswer) {
+      const { error } = await saveAnswer(q, val);
+      if (error) {
+        console.error('Save error for', q.question_key, error);
+        showToast('Could not save your answers — please try again.');
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        return;
+      }
+    }
+  }
+
+  // Mark session as complete
+  const { error: completeError } = await markComplete();
+  if (completeError) {
+    console.error('markComplete error:', completeError);
+    showToast('Could not submit — please try again.');
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    return;
+  }
+
+  showThankYou();
+}
+
+// ── Thank you ──────────────────────────────────────────────────
+function showThankYou() {
+  document.getElementById('progress-wrap').style.display='none';
+  sectionEl.textContent='Complete';
+  countEl.textContent='';
+  fillEl.style.width='100%';
+
+  const getInt = key => answers[key] !== undefined ? answers[key] : 0;
+  const pain    = getInt('q_pain_intensity');
+  const concept = getInt('q_concept');
+  const nps     = answers['q_nps'] !== undefined ? answers['q_nps'] : -1;
+  const sw      = answers['q_switch'] || '';
+  const pains   = answers['q_pains'] || [];
+  const noPain  = pains.includes("None of the above — the current system works fine for me");
+  const early   = sw.includes("today") || sw.includes("few friends");
+  const npsLabel= nps>=9?'Promoter':nps>=7?'Passive':nps>=0?'Detractor':'—';
+  const score   = Math.round((pain/5)*30+(concept/5)*30+(nps>=0?nps/10:0)*25+(early?15:0));
+  const scoreLabel = score>=70?'Strong signal':score>=45?'Moderate signal':'Weak signal';
+
+  mainEl.innerHTML = `
+    <div class="thankyou">
+      <div class="ty-card">
+        <div class="ty-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12L10 17L19 7" stroke="#5BA4B0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="ty-title">Thank you for sharing</div>
+        <div class="ty-sub">Your response has been saved to our database. It helps us understand whether PUB solves a real problem for players like you.</div>
+        <div class="adoption-badge">
+          Adoption signal: <strong>${scoreLabel}</strong> &nbsp;·&nbsp; ${score}/100
+        </div>
+        <div class="score-bar-row">
+          <div class="sbar-item">
+            <div class="sbar-meta"><span class="sbar-label">Pain intensity</span><span class="sbar-val">${pain} / 5</span></div>
+            <div class="sbar-track"><div class="sbar-fill" style="width:${(pain/5)*100}%"></div></div>
+          </div>
+          <div class="sbar-item">
+            <div class="sbar-meta"><span class="sbar-label">Concept appeal</span><span class="sbar-val">${concept} / 5</span></div>
+            <div class="sbar-track"><div class="sbar-fill" style="width:${(concept/5)*100}%"></div></div>
+          </div>
+          <div class="sbar-item">
+            <div class="sbar-meta"><span class="sbar-label">Recommendation intent (NPS)</span><span class="sbar-val">${nps>=0?nps+' / 10 — '+npsLabel:'—'}</span></div>
+            <div class="sbar-track"><div class="sbar-fill" style="width:${nps>=0?(nps/10)*100:0}%"></div></div>
+          </div>
+        </div>
+        <div class="score-grid">
+          <div class="score-tile">
+            <div class="score-tile-label">Pain validated?</div>
+            <div class="score-tile-val">${noPain?'No':pain>=3?'Yes':'Mild'}</div>
+            <div class="score-tile-desc">${noPain?'Reports no friction':pain>=4?'Strong pain signal':pain>=3?'Moderate pain':'Low pain reported'}</div>
+          </div>
+          <div class="score-tile">
+            <div class="score-tile-label">Switch intent</div>
+            <div class="score-tile-val">${early?'High':'Conditional'}</div>
+            <div class="score-tile-desc">${early?'Would adopt quickly':'Needs social proof'}</div>
+          </div>
+          <div class="score-tile">
+            <div class="score-tile-label">NPS segment</div>
+            <div class="score-tile-val">${nps>=0?npsLabel:'—'}</div>
+            <div class="score-tile-desc">${nps>=9?'Will tell their community':nps>=7?'Cautiously positive':nps>=0?'Sceptical':'Not answered'}</div>
+          </div>
+          <div class="score-tile">
+            <div class="score-tile-label">Concept fit</div>
+            <div class="score-tile-val">${concept>=4?'Strong':concept>=3?'Moderate':'Low'}</div>
+            <div class="score-tile-desc">${concept>=4?'Resonates clearly':concept>=3?'Some hesitation':'Needs more work'}</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--ink-light);font-weight:300;line-height:1.6;">Know other pickleball players? Sharing this survey with your group makes the research more useful for everyone.</p>
+      </div>
+    </div>`;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── Boot ───────────────────────────────────────────────────────
+loadQuestions();
+</script>
 </body>
 </html>
