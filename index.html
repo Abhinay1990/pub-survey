@@ -205,11 +205,11 @@ function nextKey(q) {
       }
     }
 
-    // No conditional rule matched — use default
+    // No conditional rule matched - use default
     if (defaultTarget) return defaultTarget;
   }
 
-  // No logic at all — go to next in sort_order
+  // No logic at all - go to next in sort_order
   const idx = ALL_QUESTIONS.findIndex(x => x.question_key === q.question_key);
   if (idx < ALL_QUESTIONS.length - 1) return ALL_QUESTIONS[idx + 1].question_key;
   return null;
@@ -232,7 +232,7 @@ async function loadQuestions() {
 async function ensureSession() {
   if (sessionId) return true;
   const { data, error } = await db.from('survey_sessions').insert({ started_at: new Date().toISOString() }).select('id').single();
-  if (error) { showToast('Session error — please refresh.'); return false; }
+  if (error) { showToast('Session error - please refresh.'); return false; }
   sessionId = data.id;
   return true;
 }
@@ -498,7 +498,7 @@ function goNext() {
   const q    = currentQ();
   const next = nextKey(q);
   if (!next) { submitSurvey(); return; }
-  // Always push — VISITED is a history stack, duplicates are fine
+  // Always push - VISITED is a history stack, duplicates are fine
   // because goBack() just pops one level
   VISITED.push(next);
   renderCurrent();
@@ -533,7 +533,7 @@ async function submitSurvey() {
       const { error } = await saveAnswer(q, val);
       if (error) {
         console.error('Save error', q.question_key, error);
-        showToast('Could not save — please try again.');
+        showToast('Could not save - please try again.');
         btn.classList.remove('loading'); btn.disabled = false;
         return;
       }
@@ -542,7 +542,7 @@ async function submitSurvey() {
 
   const { error } = await markComplete();
   if (error) {
-    showToast('Could not submit — please try again.');
+    showToast('Could not submit - please try again.');
     btn.classList.remove('loading'); btn.disabled = false;
     return;
   }
@@ -572,7 +572,7 @@ function showThankYou() {
 
         <div style="background:#EAF5F7;border-radius:12px;padding:20px 24px;margin-bottom:24px;text-align:left;">
           <p style="font-size:13px;font-weight:500;color:#1A1A2E;margin-bottom:6px;">Know other pickleball players?</p>
-          <p style="font-size:13px;color:#4A4A68;font-weight:300;line-height:1.6;margin-bottom:16px;">Share this survey with your playing group — the more players who respond, the better we can build for everyone.</p>
+          <p style="font-size:13px;color:#4A4A68;font-weight:300;line-height:1.6;margin-bottom:16px;">Share this survey with your playing group - the more players who respond, the better we can build for everyone.</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap;">
             <button onclick="shareWhatsApp()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border:none;border-radius:10px;background:#25D366;color:white;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.135.563 4.14 1.545 5.876L0 24l6.272-1.545A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.9 0-3.68-.5-5.22-1.376l-.374-.22-3.876.955.974-3.764-.243-.386A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
@@ -586,7 +586,7 @@ function showThankYou() {
         </div>
 
         <p style="font-size:12px;color:#8888A8;font-weight:300;line-height:1.6;">
-          Built by PUB — Pick Your Ball. Helping pickleball players connect, compete, and grow together.
+          Built by PUB - Pick Your Ball. Helping pickleball players connect, compete, and grow together.
         </p>
       </div>
     </div>`;
@@ -596,7 +596,7 @@ function showThankYou() {
   // Attach share functions
   window.shareWhatsApp = function() {
     const msg = encodeURIComponent(
-      "Hey! PUB is building an app to make finding pickleball games easier — no more WhatsApp chaos 🏓\n\nTake this 2-min survey and help shape what gets built:\n" + surveyUrl
+      "Hey! PUB is building an app to make finding pickleball games easier - no more WhatsApp chaos 🏓\n\nTake this 2-min survey and help shape what gets built:\n" + surveyUrl
     );
     window.open('https://wa.me/?text=' + msg, '_blank');
   };
