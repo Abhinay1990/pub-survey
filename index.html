@@ -474,6 +474,8 @@ function pickScale(val, el) {
   el.classList.add('selected');
   saveAnswer(q, val);
   refreshBtn();
+  // Auto-advance after short delay
+  setTimeout(() => goNext(), 400);
 }
 
 function pickMatrix(key, row, col, el) {
@@ -482,8 +484,13 @@ function pickMatrix(key, row, col, el) {
   // Deselect siblings in same row
   el.closest('tr').querySelectorAll('.matrix-radio').forEach(r => r.classList.remove('selected'));
   el.classList.add('selected');
-  saveAnswer(currentQ(), answers[key]);
+  const q = currentQ();
+  saveAnswer(q, answers[key]);
   refreshBtn();
+  // Auto-advance only when ALL rows are answered
+  if (!needsAnswer(q)) {
+    setTimeout(() => goNext(), 500);
+  }
 }
 
 // ── Navigation ─────────────────────────────────────────────────
